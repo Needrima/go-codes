@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather forecast</title>
+</head>
+<body>
+    <form action="/" method="post">
+        <input type="text" name="location" id="" placeholder="Enter location" required>
+        <input type="submit" value="Show weather info">
+    </form>
+    {{if .}}
+    <div style="font-weight: bold; font-size: medium;">
+        Location : {{.Location}} <br><br>
+        Temparature : {{.Temparature}} degree celcius <br><br>
+        Minimum temperature : {{.MinTemp}} degree celcius <br><br>
+        Maximum temperature : {{.MaxTemp}} degree celcius <br><br>
+        Pressure : {{.Pressure}}hPa <br><br>
+        Humidity : {{.Humidity}}% <br><br>
+        Sea level : {{.SeaLevel}} <br><br>
+        Ground level : {{.GroundLevel}} <br><br>
+    </div>
+    {{end}}
+</body>
+</html>

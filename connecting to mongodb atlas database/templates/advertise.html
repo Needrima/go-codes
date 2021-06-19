@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Advertise product</title>
+</head>
+<body>
+    <div>
+        <ul style="list-style-type: none;">
+            <li><a href="/home">Home</a></li>
+            <li><a href="/advertise">Advertise</a></li>
+        </ul>
+    </div>
+
+    <div>
+        <form action="/advertise" method="post" enctype="multipart/form-data">
+            <input type="text" placeholder="Product name" name="product" required><br><br>
+            <input type="text" placeholder="Seller's name" name="seller" required><br><br>
+            <input type="text" placeholder="Seller's email" name="email" required><br><br>
+            <input type="text" placeholder="Seller's phone number" name="phone" required><br><br>
+            <label for="image">Add an image for product:</label> <input type="file" name="image"><br><br>
+            <input type="submit" value="Advertise">
+        </form>
+    </div>
+</body>
+
+<script>alert({{.}})</script>
+</html>

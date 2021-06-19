@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Home</title>
+</head>
+<body>
+    <div>
+        <ul style="list-style-type: none;">
+            <li><a href="/home">Home</a></li>
+            <li><a href="/advertise">Advertise</a></li>
+        </ul>
+    </div>
+
+    <div>
+        <form action="/home" method="post">
+            <input type="text" placeholder="Search for product" name="product">
+            <input type="submit" value="Search">
+        </form>
+    </div><br><br>
+
+    {{if .}}
+        {{range .}}
+        <div style="border: 1px solid black;width: 300px;height: 300px;">
+            <center>
+                <img width="300" src="../images/{{.ImageName}}" alt="No image for product">
+                <div style="line-height: 4mm;">
+                    Name: {{.ProductName}} <br><br>
+                    Seller: {{.SellerName}}<br><br>
+                    Phone Number: {{.Phone}}<br><br>
+                    Email <a href="mailto:{{.Email}}" style="text-decoration: none;color: black;">{{.Email}}</a>
+                </div>
+            </center>
+        </div><br><br>
+        {{end}} 
+    {{end}}
+    
+</body>
+</html>
