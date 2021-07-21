@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Home</title>
+</head>
+<body>
+    <div class="nav">
+        <a href="/">Home</a>
+        <a href="/cart">Cart</a>
+    </div>
+    <form action="/advertise" method="POST">
+        <input type="text" name="product" id="" placeholder="Product name">
+        <input type="text" name="seller" id="" placeholder="Your name">
+        <input type="submit" value="Advertise">
+    </form>
+
+    {{if .}}
+        {{range .}}
+        <div>
+            <h3>{{.ProductName}} by {{.SellerName}}</h3>
+            <span><a href="/cart/{{.ProductName}}">Add to cart</a></span>
+        </div>
+        {{end}}
+    {{end}}
+</body>
+</html>

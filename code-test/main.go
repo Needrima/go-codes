@@ -1,122 +1,84 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
-	"html/template"
 	"io/ioutil"
-	"log"
-	"mime/multipart"
 	"net/http"
-	"os"
-	"path/filepath"
+	"strings"
+	"text/template"
 )
 
-type Image struct {
-	File multipart.File // file
-	Ext  string         // extension
+//splits form input to information to call Api on and actual data
+//eg Weather Lagos will be split to "weather" and "lagos"
+func getInfoTypeAndInfo(formInput string) (string, string) {
+	trimString := strings.Trim(formInput, " ")
+
+	infoParts := strings.Split(trimString, " ")
+
+	infoType := infoParts[0]
+	infoType = strings.ToLower(infoType)
+
+	info := infoParts[1]
+	info = strings.ToLower(info)
+
+	return infoType, info
 }
 
-func ProcessImage(image Image) {
-	bs, err := ioutil.ReadAll(image.File)
-	if err != nil {
-		log.Println("Byte slice", err)
-		return
-	}
-
-	tempfile, err := ioutil.TempFile("./images", "*"+image.Ext)
-	if err != nil {
-		log.Println("tempfile", err)
-		return
-	}
-
-	tempfile.Write(bs)
-}
-
-func Upload(w http.ResponseWriter, r *http.Request) {
-
-	if r.Method != http.MethodGet && r.Method != http.MethodPost {
-		http.Error(w, http.StatusText(405), http.StatusMethodNotAllowed)
-		return
-	}
-
-	if err := os.MkdirAll("./images", 0777); err != nil {
-		log.Println("Byte slice", err)
-		return
-	}
-
+func HanldeRequest(w http.ResponseWriter, r *http.Request) {
 	tpl := template.Must(template.ParseFiles("index.html"))
+	if r.Method == http.MethodPost {
+		formInput := r.FormValue("do")
+		infoType, info := getInfoTypeAndInfo(formInput)
 
-	var imageNames []string
-	if r.Method == http.MethodGet {
-		fileinfos, err := ioutil.ReadDir("images")
-		if err != nil {
-			log.Println("fileinfos", err)
-			return
+		switch infoType {
+		case "weather":
+			type WeatherInfo struct {
+				Temparature float64 `json:"temp"`
+				FeelsLike   float64 `json:"feels_like"`
+				MinTemp     float64 `json:"temp_min"`
+				MaxTemp     float64 `json:"temp_max"`
+				Pressure    float64 `json:"pressure"`
+				Humidity    float64 `json:"humidity"`
+				SeaLevel    float64 `json:"sea_level"`
+				GroundLevel float64 `json:"grnd_level"`
+			}
+			
+			type Weather struct {
+				Location    string `json:"name"`
+				WeatherInfo `json:"main"`
+			}
+
+			var we Weather
+			resp, err := http.Get(fmt.Sprintf("http://api.openweathermap.org/data/2.5/weather?q=%s&appid=da8d44e4505f5153cf700b5eeeb1885d&units=metric", info))
+			if err != nil {
+				http.Error(w, "Something went wrong", 500)
+				return
+			}
+			defer resp.Body.Close()
+
+			respBody, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				http.Error(w, "Something went wrong", 500)
+				return
+			}
+
+			err = json.Unmarshal(respBody, &we)
+			if err != nil {
+				http.Error(w, "Something went wrong", 500)
+				return
+			}
+
+			tpl.Execute(w, we)
+		default:
+			http.Error(w, "Invalid input", 400)
 		}
-
-		for _, fileinfo := range fileinfos {
-			imageNames = append(imageNames, fileinfo.Name())
-		}
-
-		fmt.Println(imageNames)
-
-		tpl.ExecuteTemplate(w, "index.html", imageNames)
-	} else if r.Method == http.MethodPost {
-		r.ParseMultipartForm(5 << 10) // max of 5MB
-		r.ParseForm()
-
-		img1, h1, err := r.FormFile("img1")
-		if err != nil {
-			http.Error(w, http.StatusText(400), 400)
-			return
-		}
-		defer img1.Close()
-		imageObject1 := Image{img1, filepath.Ext(h1.Filename)}
-
-		img2, h2, err := r.FormFile("img2")
-		if err != nil {
-			http.Error(w, http.StatusText(400), 400)
-			return
-		}
-		defer img2.Close()
-		imageObject2 := Image{img2, filepath.Ext(h2.Filename)}
-
-		img3, h3, err := r.FormFile("img3")
-		if err != nil {
-			http.Error(w, http.StatusText(400), 400)
-			return
-		}
-		defer img3.Close()
-		imageObject3 := Image{img3, filepath.Ext(h3.Filename)}
-
-		images := []Image{imageObject1, imageObject2, imageObject3}
-
-		for _, image := range images {
-			ProcessImage(image)
-		}
-
-		fileinfos, err := ioutil.ReadDir("./images")
-		if err != nil {
-			log.Println("tempfile", err)
-			return
-		}
-
-		for _, fileinfo := range fileinfos {
-			imageNames = append(imageNames, fileinfo.Name())
-		}
-		fmt.Println(imageNames)
-
-		tpl.ExecuteTemplate(w, "index.html", imageNames)
+		return
 	}
+
+	tpl.Execute(w, nil)
 }
 
 func main() {
-	http.HandleFunc("/", Upload)
-	http.Handle("/images/", http.StripPrefix("/images/", http.FileServer(http.Dir("images"))))
-	http.Handle("/favicon.ico", http.NotFoundHandler())
-
-	log.Println("Now serving on port 8080")
-	if err := http.ListenAndServe(":8080", nil); err != nil {
-		log.Fatalln("ListenAndServe:", err)
-	}
+	fmt.Println("Hello world!")
 }
