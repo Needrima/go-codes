@@ -15,7 +15,7 @@ func main() {
 
 	auth := smtp.PlainAuth("", from, "password", "smtp.gmail.com")
 
-	message := `To: Oladeji Rafiat <oyebodeoladejiabiodun@gmail.com>
+	message := `To: Oladeji Rafiat <oladejirafiatade@gmail.com>
 	From: Oyebode Amirdeen <oyebodeoladejiabiodun@gmail.com>
 	Subject: Demo mail
 

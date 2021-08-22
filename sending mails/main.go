@@ -17,7 +17,7 @@ func main() {
 
 	mail.SetBody("text/plain", "This is a test mail")
 
-	dialer := gomail.NewPlainDialer("smtp.gmail.com", 587, "from@gmail.com", "password")
+	dialer := gomail.NewPlainDialer("smtp.gmail.com", 587, "oyebodeamirdeen@gmail.com", "")
 
 	//dialer.TLSConfig = &tls.Config{InsecureSkipVerify: false}
 

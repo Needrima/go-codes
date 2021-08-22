@@ -1,30 +1,26 @@
 package main
 
 import (
+	"fmt"
+	"io/ioutil"
+	"log"
 	"net/http"
-	"html/template"
 )
 
-var tpl = template.Must(template.ParseFiles("main.html"))
-
-func foo(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodGet {
-		tpl.Execute(w, nil)
-	}
-}
-
-func Bar(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Error occurred", http.StatusMethodNotAllowed)
-	}else {
-		q := r.FormValue("name")
-		tpl.Execute(w, q)
-	}
-}
-
 func main() {
-	http.HandleFunc("/", foo)
-	http.HandleFunc("/search", Bar)
+	resp, err := http.Get(`http://localhost:8080/?key=spiderman`)
+	if err != nil {
+		log.Println("Resp err:", err)
+		return
+	}
 
-	http.ListenAndServe(":3000", nil)
+	defer resp.Body.Close()
+
+	bs, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Println("Readall err:", err)
+		return
+	}
+
+	fmt.Println(string(bs))
 }
