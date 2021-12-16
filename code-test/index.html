@@ -5,15 +5,41 @@
 </head>
 <body>
 
-    <form action="/" method="post" enctype="multipart/form-data">
-        <input type="file" name="file" id="">
-        <input type="submit" value="Upload File">
-    </form>
+    <div>
+        <form>
+            <input type='text' placeholder="text message">
+            <button type="submit">Send Message</button>
+        </form>
 
-    {{if .}}
-    <script>   
-        alert("{{.}}")
+        <p id="showChat"></p>
+    </div>
+
+    <script>
+        let socket = new WebSocket('ws://localhost:8000/ws')
+
+        socket.onopen = () => {
+            console.log('Socket open, handshake successfull:', socket.binaryType)
+        }
+
+        socket.onmessage = (m) => {
+            console.log('Received message:', m.data)
+
+            let p = document.createElement('p')
+            p.textContent = m.data
+
+            document.querySelector('body').appendChild(p)
+        }  
+
+        socket.onerror = (error) => {
+            console.log("Socket error:", error)
+        }  
+        
+        function sendMsg() {
+            let msg = document.querySelector('input').value
+            socket.send(msg)
+        }
+
+        document.querySelector('button').addEventListener('click', sendMsg)
     </script>
-    {{end}}
 </body>
 </html>
