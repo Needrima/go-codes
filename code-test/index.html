@@ -10,8 +10,6 @@
             <input type='text' placeholder="text message">
             <button type="submit">Send Message</button>
         </form>
-
-        <p id="showChat"></p>
     </div>
 
     <script>
@@ -27,7 +25,7 @@
             let p = document.createElement('p')
             p.textContent = m.data
 
-            document.querySelector('body').appendChild(p)
+            document.querySelector('body').querySelector('div').appendChild(p)
         }  
 
         socket.onerror = (error) => {
