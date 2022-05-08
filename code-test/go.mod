@@ -2,7 +2,4 @@ module go-codes/code-test
 
 go 1.16
 
-require (
-	github.com/gorilla/mux v1.8.0
-	github.com/rs/cors v1.8.2 // indirect
-)
+require github.com/gorilla/websocket v1.5.0
