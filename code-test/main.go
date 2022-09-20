@@ -1,96 +1,97 @@
 package main
 
 import (
-	"fmt"
+	"context"
+	"encoding/json"
+	"html/template"
 	"log"
 	"net/http"
 
-	"github.com/gorilla/websocket"
-	uuid "github.com/satori/go.uuid"
+	"github.com/spf13/viper"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var (
-	upgrader = websocket.Upgrader{
-		ReadBufferSize:  1024,
-		WriteBufferSize: 1024,
-	}
-
-	conns = map[*websocket.Conn]bool{}
-)
-
-type Chat struct {
-	Type string `json:"type"`
-	Name string `json:"name"`
-	Msg  string `json:"msg"`
-}
-
-func ChatHandler(w http.ResponseWriter, r *http.Request) {
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	conns[conn] = true
-
-	go func(conn *websocket.Conn) {
-		for {
-			var c Chat
-			err := conn.ReadJSON(&c)
-			if err != nil {
-				fmt.Println("could not read from connection: deleting connection", err)
-				delete(conns, conn)
-				return
-			}
-
-			if c.Type == "new user" {
-				fmt.Printf("new user name: %v joined\n", c.Name)
-			} else if c.Type == "new message" {
-				fmt.Printf("Received message: %v\n", c.Msg)
-			}
-
-			for eachConn := range conns {
-				if err := eachConn.WriteJSON(c); err != nil {
-					fmt.Println("could not write to connection: deleting connection", err)
-					delete(conns, eachConn)
-					continue
-				}
-			}
-		}
-	}(conn)
+type Config struct {
+	DBUsername string `mapstructure:"DB_USERNAME"`
+	DBPassword string `mapstructure:"DB_PASSWORD"`
 }
 
 func main() {
-	http.HandleFunc("/home", func(w http.ResponseWriter, r *http.Request){
-		switch r.Method {
-		case http.MethodGet:
-			http.ServeFile(w, r, "home.html")
-		default:
-			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
-		}
-	})
+	viper.AddConfigPath(".")
+	viper.SetConfigName("app")
+	viper.SetConfigType("env")
+	viper.AutomaticEnv()
 
-	http.HandleFunc("/newchat", func(w http.ResponseWriter, r *http.Request){
-			groupId := uuid.NewV4()
-			http.Redirect(w, r, "/group?id="+groupId, http.StatusSeeOther)
-		
-	})
+	if err := viper.ReadInConfig(); err != nil {
+		log.Println("could not read env file:", err)
+		return
+	}
 
-	http.HandleFunc("/join", func(w http.ResponseWriter, r *http.Request){
-		switch r.Method {
-		case http.MethodGet:
-			http.ServeFile(w, r, "home.html")
-		default:
-			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
-		}
-	})
+	var config Config
+	if err := viper.Unmarshal(&config); err != nil {
+		log.Println("error unmarshalling configuration variables:", err)
+		return
+
+	}
+
+	credential := options.Credential{
+		Username: config.DBUsername,
+		Password: config.DBPassword,
+	}
+
+	clientOpts := options.Client().ApplyURI("mongodb://localhost:27000").SetAuth(credential)
+	client, err := mongo.Connect(context.TODO(), clientOpts)
+	if err != nil {
+		log.Println("error connecting:", err)
+		return
+	}
+	defer client.Disconnect(context.TODO())
+
+	collection := client.Database("users").Collection("coll")
+
+	tpl := template.Must(template.ParseFiles("./index.html"))
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "index.html")
+		switch r.Method {
+		case http.MethodGet:
+			if err := tpl.Execute(w, nil); err != nil {
+				http.Error(w, "something went wrong", http.StatusInternalServerError)
+			}
+		case http.MethodPost:
+			fname, lname := r.FormValue("fname"), r.FormValue("lname")
+
+			collection.InsertOne(context.TODO(), bson.M{
+				"firstname": fname,
+				"lastname":  lname,
+			})
+			tpl.Execute(w, "successfully added record")
+		}
+	})
+	
+	http.HandleFunc("/all", func(w http.ResponseWriter, r *http.Request) {
+		var values []bson.M
+
+		cursor, err := collection.Find(context.TODO(), bson.M{})
+		if err != nil {
+			log.Println("error finding collection:",err)
+			http.Error(w, "something went wrong", 500)
+			return
+		}
+		defer cursor.Close(context.TODO())
+
+		if err := cursor.All(context.TODO(), &values); err != nil {
+			log.Println("error writing data:",err)
+			http.Error(w, "something went wrong", 500)
+			return
+		}
+		
+		json.NewEncoder(w).Encode(values)
 	})
 
-	http.HandleFunc("/chat", ChatHandler)
-
-	fmt.Println("visit localhost:8090...")
-	log.Fatal(http.ListenAndServe(":8090", nil))
+	http.ListenAndServe(":4563", nil)
 }
+
+// bs, _ := bcrypt.GenerateFromPassword([]byte("securedandrewwilder05"), bcrypt.MinCost)
+// fmt.Println(string(bs))
